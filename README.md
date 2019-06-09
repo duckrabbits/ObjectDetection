@@ -14,6 +14,7 @@ Kaggleのシンプソンズデータセットで学習・推定を行う手順�
 - simpsons_dataset.zipを解凍します。
 - 解凍したsimpsons_datasetフォルダをプロジェクトフォルダ配下に格納します。
 - annotation.txtもプロジェクトフォルダ配下に格納します。
+ （kaggleからダウンロードしたannotation.txtではなく、ここにあるannotation.txtを使いましょう）
 
 ### 学習
 
