@@ -25,9 +25,9 @@ sys.setrecursionlimit(10000)
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description='Object Detection')
 parser.add_argument("-p", "--path", default=None, help="path to annotation file")
 parser.add_argument("--save_dir", default="./save", help="path to save directory")
-parser.add_argument('--n_epochs', default=2000, type=int, metavar='N',
+parser.add_argument('--n_epochs', default=10, type=int, metavar='N',
                     help='number of epochs')
-parser.add_argument('--n_iters', default=1000, type=int, metavar='N',
+parser.add_argument('--n_iters', default=10, type=int, metavar='N',
                     help='number of iterations')
 parser.add_argument('--horizontal_flips', action='store_true',
                     help='augument with horizontal flips (Default:False)')
@@ -63,8 +63,8 @@ def main():
     train_imgs = [s for s in all_imgs if s['imageset'] == 'trainval']
     val_imgs = [s for s in all_imgs if s['imageset'] == 'test']
 
-    data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, K.image_dim_ordering(), mode='train')
-    data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, K.image_dim_ordering(), mode='val')
+    data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, K.image_data_format(), mode='train')
+    data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, K.image_data_format(), mode='val')
 
     model_rpn, model_classifier, model_all = faster_rcnn.get_model(C, classes_count)
 
@@ -80,6 +80,7 @@ def main():
     iter_num = 0
 
     t0 = start_time = time.time()
+    print(model_all.summary())
     try:
         for epoch_num in range(args.n_epochs):
             progbar = generic_utils.Progbar(args.n_iters)
@@ -96,7 +97,7 @@ def main():
                     X, Y, img_data = next(data_gen_train)
                     loss_rpn = model_rpn.train_on_batch(X, Y)
                     P_rpn = model_rpn.predict_on_batch(X)
-                    R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
+                    R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_data_format(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
 
                     # note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
                     X2, Y1, Y2 = roi_helpers.calc_iou(R, img_data, C, class_mapping)
