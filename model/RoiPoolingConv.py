@@ -26,8 +26,8 @@ class RoiPoolingConv(Layer):
     '''
     def __init__(self, pool_size, num_rois, **kwargs):
 
-        self.dim_ordering = K.image_dim_ordering()
-        assert self.dim_ordering in {'tf', 'th'}, 'dim_ordering must be in {tf, th}'
+        self.dim_ordering = K.image_data_format()
+        assert self.dim_ordering in {'channels_last', 'channels_first'}, 'dim_ordering must be in {channels_last, channels_first}'
 
         self.pool_size = pool_size
         self.num_rois = num_rois
@@ -35,13 +35,13 @@ class RoiPoolingConv(Layer):
         super(RoiPoolingConv, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        if self.dim_ordering == 'th':
+        if self.dim_ordering == 'channels_first':
             self.nb_channels = input_shape[0][1]
-        elif self.dim_ordering == 'tf':
+        elif self.dim_ordering == 'channels_last':
             self.nb_channels = input_shape[0][3]
 
     def compute_output_shape(self, input_shape):
-        if self.dim_ordering == 'th':
+        if self.dim_ordering == 'channels_first':
             return None, self.num_rois, self.nb_channels, self.pool_size, self.pool_size
         else:
             return None, self.num_rois, self.pool_size, self.pool_size, self.nb_channels
@@ -63,7 +63,7 @@ class RoiPoolingConv(Layer):
             y = rois[0, roi_idx, 1]
             w = rois[0, roi_idx, 2]
             h = rois[0, roi_idx, 3]
-            
+
             row_length = w / float(self.pool_size)
             col_length = h / float(self.pool_size)
 
@@ -72,7 +72,7 @@ class RoiPoolingConv(Layer):
             #NOTE: the RoiPooling implementation differs between theano and tensorflow due to the lack of a resize op
             # in theano. The theano implementation is much less efficient and leads to long compile times
 
-            if self.dim_ordering == 'th':
+            if self.dim_ordering == 'channels_first':
                 for jy in range(num_pool_regions):
                     for ix in range(num_pool_regions):
                         x1 = x + ix * row_length
@@ -87,7 +87,7 @@ class RoiPoolingConv(Layer):
 
                         x2 = x1 + K.maximum(1,x2-x1)
                         y2 = y1 + K.maximum(1,y2-y1)
-                        
+
                         new_shape = [input_shape[0], input_shape[1],
                                      y2 - y1, x2 - x1]
 
@@ -96,7 +96,7 @@ class RoiPoolingConv(Layer):
                         pooled_val = K.max(xm, axis=(2, 3))
                         outputs.append(pooled_val)
 
-            elif self.dim_ordering == 'tf':
+            elif self.dim_ordering == 'channels_last':
                 x = K.cast(x, 'int32')
                 y = K.cast(y, 'int32')
                 w = K.cast(w, 'int32')
@@ -108,7 +108,7 @@ class RoiPoolingConv(Layer):
         final_output = K.concatenate(outputs, axis=0)
         final_output = K.reshape(final_output, (1, self.num_rois, self.pool_size, self.pool_size, self.nb_channels))
 
-        if self.dim_ordering == 'th':
+        if self.dim_ordering == 'channels_first':
             final_output = K.permute_dimensions(final_output, (0, 1, 4, 2, 3))
         else:
             final_output = K.permute_dimensions(final_output, (0, 1, 2, 3, 4))

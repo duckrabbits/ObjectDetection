@@ -87,14 +87,14 @@ def detect_predict(pic, C, model_rpn, model_classifier, model_classifier_only, c
     img_scaled[:, :, 2] += 103.939
     img_scaled = img_scaled.astype(np.uint8)
 
-    if K.image_dim_ordering() == 'tf':
+    if K.image_data_format() == 'channels_last':
         X = np.transpose(X, (0, 2, 3, 1))
 
     # get the feature maps and output from the RPN
     [Y1, Y2, F] = model_rpn.predict(X)
 
 
-    R = roi_helpers.rpn_to_roi(Y1, Y2, C, K.image_dim_ordering(), overlap_thresh=0.7)
+    R = roi_helpers.rpn_to_roi(Y1, Y2, C, K.image_data_format(), overlap_thresh=0.7)
 
     # convert from (x1,y1,x2,y2) to (x,y,w,h)
     R[:, 2] -= R[:, 0]
